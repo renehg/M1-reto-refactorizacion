@@ -1,0 +1,19 @@
+I001 [*] Import block is un-sorted or un-formatted
+ --> tests\test_conversor.py:4:1
+  |
+2 |   # Suite de pruebas del conversor (parcial: no cubre todas las funciones)
+3 |
+4 | / import pytest
+5 | |
+6 | | from conversor import celsius_a_fahrenheit, km_a_millas, convertir
+  | |__________________________________________________________________^
+help: Organize imports
+  |
+5 |
+  - from conversor import celsius_a_fahrenheit, km_a_millas, convertir
+6 + from conversor import celsius_a_fahrenheit, convertir, km_a_millas
+7 |
+  |
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.

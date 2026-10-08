@@ -1,0 +1,25 @@
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle (errores)
+    "F",    # pyflakes
+    "W",    # pycodestyle (advertencias)
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "ANN",  # anotaciones de tipos
+    "D",    # docstrings
+    "EM",   # mensajes de excepciones
+    "TRY",  # buenas prácticas con excepciones
+    "PL",   # pylint
+    "RUF",  # reglas propias de ruff
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# En pytest es normal comparar con literales y no documentar ni anotar cada prueba
+"tests/**" = ["PLR2004", "D", "ANN"]
