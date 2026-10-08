@@ -6,7 +6,10 @@ Uso: python cli.py VALOR CLAVE   |   python cli.py --listar
 import argparse
 import sys
 
-from conversor import CONVERSIONES, convertir
+from conversor import CONVERSIONES, ErrorConversion, convertir
+
+# Decimales con los que se muestra el resultado
+DECIMALES_SALIDA = 4
 
 
 def construir_parser() -> argparse.ArgumentParser:
@@ -48,7 +51,10 @@ def main(argv: list[str] | None = None) -> int:
         argv: Argumentos de línea de comandos; si es ``None`` se usa ``sys.argv``.
 
     Returns:
-        0 si todo sale bien, 1 si falla la conversión y 2 si faltan argumentos.
+        0 si todo sale bien y 1 si falla la conversión.
+
+    Raises:
+        SystemExit: Con código 2 si los argumentos son inválidos o faltan.
     """
     parser = construir_parser()
     args = parser.parse_args(argv)
@@ -59,18 +65,15 @@ def main(argv: list[str] | None = None) -> int:
 
     # Sin --listar se requieren ambos argumentos posicionales
     if args.valor is None or args.clave is None:
-        parser.print_usage()
-        print("Error: se requieren VALOR y CLAVE (o usa --listar)", file=sys.stderr)
-        return 2
+        parser.error("se requieren VALOR y CLAVE (o usa --listar)")
 
     try:
         resultado = convertir(args.valor, args.clave)
-    except (ValueError, KeyError) as error:
-        # KeyError envuelve el mensaje entre comillas; lo limpiamos para el usuario
-        print(f"Error: {str(error).strip(chr(39))}", file=sys.stderr)
+    except ErrorConversion as error:
+        print(f"Error: {error}", file=sys.stderr)
         return 1
 
-    print(resultado)
+    print(round(resultado, DECIMALES_SALIDA))
     return 0
 
 
