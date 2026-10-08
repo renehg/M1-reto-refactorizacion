@@ -1,6 +1,6 @@
 # Pasos ejecutados del plan
 
-Registro de los pasos de `PLAN.md` que ya se ejecutaron, con lo que se cambió y la salida de las verificaciones. Los pasos 0 a 8 están en el commit `a11c800` (`refactor: aplicar pasos 0 a 8 del plan`). Los pasos 9 a 13 todavía no tienen commit.
+Registro de los pasos de `PLAN.md` que ya se ejecutaron, con lo que se cambió y la salida de las verificaciones. Los pasos 0 a 8 están en el commit `a11c800` (`refactor: aplicar pasos 0 a 8 del plan`). Los pasos 9 a 13 están en el commit `749f53e` (`refactor: aplicar pasos 9 a 13 del plan`).
 
 Criterio global en todos los pasos: `pytest tests/test_conversor.py -q` → `4 passed`.
 
