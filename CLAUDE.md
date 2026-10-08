@@ -28,13 +28,13 @@ Ejecuta los comandos desde la raíz del repositorio. El `conftest.py` de la raí
 
 ## Arquitectura
 
-- `conversor.py`: lógica de conversión pura. Cada conversión es una función independiente que valida su entrada y lanza `ValueError` ante valores físicamente imposibles (temperaturas bajo el cero absoluto, distancias o masas negativas). Todas se registran en el diccionario `CONVERSIONES` como `clave -> (función, descripción)`. `convertir(valor, clave)` es el único punto de entrada: lanza `KeyError` si la clave no existe y redondea el resultado a 4 decimales.
-- `cli.py`: envoltorio con argparse sobre `convertir`. `main(argv)` devuelve un código de salida en lugar de terminar el proceso (0 éxito, 1 error de conversión, 2 faltan argumentos), así que se puede probar pasándole `argv`. Captura `ValueError` y `KeyError`, y quita las comillas que Python añade al mensaje de un `KeyError`. `--listar` se genera directamente a partir de `CONVERSIONES`.
+- `conversor.py`: lógica de conversión pura. Cada conversión es una función independiente que valida su entrada con `_validar_sobre_cero_absoluto` o `_validar_no_negativo` y lanza `ErrorConversion` (subclase de `ValueError`, con los mensajes como atributos de clase) ante valores físicamente imposibles. Todas se registran en `CONVERSIONES`, un `MappingProxyType` de solo lectura que mapea cada clave a un `Conversion(funcion, descripcion)`. `convertir(valor, clave)` es el único punto de entrada: lanza `ClaveNoSoportada` (subclase de `ErrorConversion` y de `KeyError`, con un `__str__` sin comillas) si la clave no existe, `ErrorConversion` si el valor no es finito, y devuelve el resultado sin redondear.
+- `cli.py`: envoltorio con argparse sobre `convertir`. `main(argv)` devuelve 0 si todo sale bien y 1 si falla la conversión, así que se puede probar pasándole `argv`. Si faltan argumentos o no son válidos, usa `parser.error()`, que imprime el uso en `stderr` y lanza `SystemExit(2)`; en las pruebas se captura con `pytest.raises(SystemExit)`. Captura `ErrorConversion` e imprime su mensaje en `stderr`. `--listar` se genera directamente a partir de `CONVERSIONES`.
 
-Para añadir una conversión, escribe la función en `conversor.py` y agrega una entrada en `CONVERSIONES`. La CLI y `--listar` la detectan automáticamente.
+Para añadir una conversión, escribe la función en `conversor.py` y agrega una entrada `Conversion(...)` en `CONVERSIONES`. La CLI y `--listar` la detectan automáticamente.
 
 ## Estado y evidencias del reto
 
-- `tests/test_conversor.py` es parcial a propósito: `f2c`, las conversiones inversas y la CLI no tienen pruebas.
-- `fahrenheit_a_celsius` usa `* 9 / 5` en lugar de `* 5 / 9`, así que `f2c` da resultados incorrectos (212 °F → 324 en vez de 100) y su validación del cero absoluto no es fiable.
+- `tests/test_conversor.py` tiene las 4 pruebas originales, que deben seguir pasando tras cada paso. `tests/test_caracterizacion.py` fija el comportamiento de todas las conversiones, las validaciones y la CLI.
+- El refactor sigue `PLAN.md`; `pasosplan.md` registra los pasos ya ejecutados y su verificación.
 - `docs/evidenciaestadoactual/` guarda las salidas de las herramientas antes del refactor (`00_pytest_inicio.txt`, `00_ruff_inicio.txt`). Los archivos están en UTF-16 porque se generaron con redirección de PowerShell. Si agregas evidencias nuevas, sigue la numeración (`01_...`).

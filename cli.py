@@ -1,14 +1,19 @@
-# cli.py
-# Interfaz de línea de comandos del conversor de unidades.
-# Uso: python cli.py VALOR CLAVE   |   python cli.py --listar
+"""Interfaz de línea de comandos del conversor de unidades.
+
+Uso: python cli.py VALOR CLAVE   |   python cli.py --listar
+"""
 
 import argparse
 import sys
 
-from conversor import CONVERSIONES, convertir
+from conversor import CONVERSIONES, ErrorConversion, convertir
+
+# Decimales con los que se muestra el resultado
+DECIMALES_SALIDA = 4
 
 
-def construir_parser():
+def construir_parser() -> argparse.ArgumentParser:
+    """Crea el parser de argumentos de la CLI."""
     parser = argparse.ArgumentParser(
         prog="conversor",
         description="Conversor de unidades de línea de comandos",
@@ -32,14 +37,25 @@ def construir_parser():
     return parser
 
 
-def listar_conversiones():
-    # Imprime la tabla de conversiones disponibles
+def listar_conversiones() -> None:
+    """Imprime la tabla de conversiones disponibles."""
     print("Conversiones disponibles:")
-    for clave, (_, descripcion) in sorted(CONVERSIONES.items()):
-        print(f"  {clave:8s} {descripcion}")
+    for clave, conversion in sorted(CONVERSIONES.items()):
+        print(f"  {clave:8s} {conversion.descripcion}")
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
+    """Ejecuta la CLI y devuelve el código de salida.
+
+    Args:
+        argv: Argumentos de línea de comandos; si es ``None`` se usa ``sys.argv``.
+
+    Returns:
+        0 si todo sale bien y 1 si falla la conversión.
+
+    Raises:
+        SystemExit: Con código 2 si los argumentos son inválidos o faltan.
+    """
     parser = construir_parser()
     args = parser.parse_args(argv)
 
@@ -49,18 +65,15 @@ def main(argv=None):
 
     # Sin --listar se requieren ambos argumentos posicionales
     if args.valor is None or args.clave is None:
-        parser.print_usage()
-        print("Error: se requieren VALOR y CLAVE (o usa --listar)", file=sys.stderr)
-        return 2
+        parser.error("se requieren VALOR y CLAVE (o usa --listar)")
 
     try:
         resultado = convertir(args.valor, args.clave)
-    except (ValueError, KeyError) as error:
-        # KeyError envuelve el mensaje entre comillas; lo limpiamos para el usuario
-        print(f"Error: {str(error).strip(chr(39))}", file=sys.stderr)
+    except ErrorConversion as error:
+        print(f"Error: {error}", file=sys.stderr)
         return 1
 
-    print(resultado)
+    print(round(resultado, DECIMALES_SALIDA))
     return 0
 
 
