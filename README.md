@@ -67,5 +67,6 @@ ruff format --check .   # formato
 | `PLAN.md` | Plan de 14 pasos, de menor a mayor riesgo |
 | `docs/bitacora.md` | Por qué, qué se cambió y cómo se verificó cada paso |
 | `docs/reflexion.md` | Aprendizajes y conclusiones |
+| `docs/M1_Formato_de_entrega.docx` | Formato de entrega del reto, con el anexo de capturas de los prompts |
 | `docs/evidenciaestadoactual/` | Salidas de pytest y ruff antes del refactor |
 | `docs/evidenciaestadofinal/` | Salidas de pytest y ruff después del refactor |
