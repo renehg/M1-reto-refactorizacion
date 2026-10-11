@@ -1,6 +1,6 @@
 """Interfaz de línea de comandos del conversor de unidades.
 
-Uso: python cli.py VALOR CLAVE   |   python cli.py --listar
+Uso: python src/cli.py VALOR CLAVE   |   python src/cli.py --listar
 """
 
 import argparse

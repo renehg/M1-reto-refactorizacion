@@ -1,6 +1,6 @@
-# Pasos ejecutados del plan
+# Bitácora del refactor
 
-Registro de los pasos de `PLAN.md` que ya se ejecutaron, con lo que se cambió y la salida de las verificaciones. Los pasos 0 a 8 están en el commit `a11c800` (`refactor: aplicar pasos 0 a 8 del plan`). Los pasos 9 a 13 están en el commit `749f53e` (`refactor: aplicar pasos 9 a 13 del plan`).
+Registro de cada paso de `PLAN.md`: por qué se hizo, qué se cambió y la salida de las verificaciones. Los smells citados se refieren a `DIAGNOSTICO.md`. Los pasos 0 a 8 están en el commit `a11c800` (`refactor: aplicar pasos 0 a 8 del plan`). Los pasos 9 a 13 están en el commit `749f53e` (`refactor: aplicar pasos 9 a 13 del plan`).
 
 Criterio global en todos los pasos: `pytest tests/test_conversor.py -q` → `4 passed`.
 
@@ -22,9 +22,44 @@ Criterio global en todos los pasos: `pytest tests/test_conversor.py -q` → `4 p
 | 12 | 42 passed | **0** |
 | 13 | 43 passed | **0** |
 
+
+## Cómo se trabajó con Claude Code
+
+El trabajo se hizo por fases, y cada una dejó un resultado en el repositorio:
+
+| Fase | Resultado |
+|---|---|
+| Configuración | `CLAUDE.md`, `.claudeignore` y `.claude/settings.json` |
+| Exploración | `MAPA_GENERAL.md` |
+| Diagnóstico | `DIAGNOSTICO.md` |
+| Riesgos | `RIESGOS.md` |
+| Plan | `PLAN.md` |
+| Pasos 0 a 8 | commit `a11c800` |
+| Pasos 9 a 13 | commit `749f53e` |
+| Entrega | evidencia final, `README.md`, esta bitácora y `docs/reflexion.md` |
+
+### Prompts utilizados
+
+Transcritos tal cual de las capturas de pantalla, que están en el anexo del formato de entrega. Las fases de exploración y diagnóstico se hicieron en plan mode (solo lectura).
+
+| Fase | Prompt |
+|---|---|
+| Configuración | `/add-dir C:\Curso Next Gen IA\Reto 1 Refactor\proyecto` y `/init` |
+| Configuración | `/import` y "crea exclusiones .claude/settings.json con permissions.deny que bloquee la lectura de .venv/, \_\_pycache\_\_/, .pytest_cache/, .ruff_cache/, docs/evidenciaestadoinicial/ y cualquier .env. tambien crea .claudeignore con las mismas rutas muestrame el contendio de ambos antes de guardarlos" |
+| Exploración | "Dame un mapa general del proyecto: qué hace cada archivo en la raiz, cómo se relacionan entre sí si existen dependencias externas y qué estado global comparten. se concreto" |
+| Diagnóstico | "Actua como senior de Python. Analiza e identifica los code smells. Para cada uno indica: archivo y función, tipo de smell, por qué es un problema y qué regla de ruff lo detecta (si aplica). Corre ruff check src para confirmarlo. No cambies nada; solo repórtame." |
+| Riesgos | "Lee tests/ y dime qué comportamientos estan cubiertos y cuáles NO están cubiertos. ¿Qué refactorizaciones podrían cambiar el comportamiento sin que ningún test lo detecte?" |
+| Plan | "Propón un plan de refactorización priorizado (de menor a mayor riesgo), con una refactorización por paso. Para cada paso incluye: objetivo, archivos, smells que elimina, reglas de ruff que deberían desaparecer y criterios de aceptación verificables." |
+| Plan (ajuste) | "agrega al plan los cliterios de aceptacion globales 4 test en verde tras cada paso" |
+| Pasos 0 a 8 | No se guardó captura. |
+| Pasos 9 a 13 | No se guardó captura. |
+| Entrega | "antes de arrancar lee el claude.md asi como los demas archivo .md como contexto de lo que se trabajo" · "quiero que me ayudes a generar este archivo como ejemplo con base al archivo pasosplan.md [M1._Formato_de_entrega.docx]" · "si haz lo que pida el documento y hasta la relfexion solo que la relfexion ponla aqui antes para aprobarla" |
+
 ---
 
 ## Paso 0 · Pruebas de caracterización
+
+**Por qué:** Las 4 pruebas originales no cubrían `f2c`, las validaciones ni la CLI (`RIESGOS.md`). Sin una red de seguridad, cualquier paso podía cambiar el comportamiento sin que fallara ninguna prueba.
 
 **Cambio:** nuevo archivo `tests/test_caracterizacion.py` con 25 pruebas. No se modificó el código de producción. Los valores esperados se obtuvieron ejecutando el código actual.
 
@@ -44,6 +79,8 @@ ruff format --check .              → 10 files already formatted
 
 ## Paso 1 · Configurar ruff en el proyecto
 
+**Por qué:** Sin configuración en el repositorio, el resultado de ruff dependía de la máquina de cada persona. Fijar las reglas da un criterio común y medible para el resto de los pasos.
+
 **Cambio:** nuevo `pyproject.toml` con `target-version = "py312"`, los grupos `E, F, W, I, B, UP, ANN, D, EM, TRY, PL, RUF`, convención de docstrings `google` y, en `tests/**`, se ignoran `PLR2004`, `D` y `ANN`. Se agregó `ruff>=0.16` a `requirements.txt`.
 
 ```
@@ -57,6 +94,8 @@ pytest tests/test_conversor.py -q  → 4 passed
 Aparecieron exactamente las 8 reglas previstas, sin falsos positivos (T201, S101, PLR2004, CPY001, INP001).
 
 ## Paso 2 · Ordenar imports
+
+**Por qué:** Era el único error con la configuración original y se corrige de forma automática, así que es el paso con menos riesgo.
 
 **Cambio:** `ruff check --fix --select I .` cambió una línea de `tests/test_conversor.py`:
 
@@ -74,6 +113,8 @@ pytest tests/test_conversor.py -q  → 4 passed
 ```
 
 ## Paso 3 · Anotaciones de tipos
+
+**Por qué:** Sin anotaciones no había contrato de tipos: nada impedía pasar un `str` a `convertir` (smell 11).
 
 **Cambio:** se anotaron las 10 funciones públicas, sin tocar ninguna otra línea.
 
@@ -96,6 +137,8 @@ git diff                           → 10 líneas cambiadas, todas firmas de fun
 
 ## Paso 4 · Docstrings en lugar de comentarios
 
+**Por qué:** `help()` y los IDE no muestran los comentarios `#`, y los encabezados que repetían el nombre del archivo no aportaban nada (smell 12).
+
 **Cambio:** los encabezados de `conversor.py`, `cli.py` y `conftest.py` pasaron a ser docstrings de módulo, y se quitaron las líneas que repetían el nombre del archivo. Cada función tiene un docstring con estilo Google (`Args`, `Returns`, `Raises` donde aplica). Los comentarios que explican líneas o constantes concretas se conservaron. El diff filtrado confirmó que no cambió ninguna línea de código.
 
 ```
@@ -108,6 +151,8 @@ help(conversor.convertir)          → muestra la descripción con Args, Returns
 ```
 
 ## Paso 5 · Constantes para las fórmulas de temperatura
+
+**Por qué:** `9`, `5` y `32` estaban escritos directamente en las fórmulas, mientras que los factores de distancia y masa sí tenían constantes (smell 3). Además deja lista la corrección de `f2c`.
 
 **Cambio:** en `conversor.py` se agregaron `ESCALA_F_NUM = 9`, `ESCALA_F_DEN = 5` y `DESPLAZAMIENTO_F = 32`, y las dos fórmulas las usan con el mismo orden de operaciones. `f2c` conserva el error `* 9 / 5` hasta el paso 10.
 
@@ -122,6 +167,8 @@ equivalencia sobre 221 900 valores → 0 diferencias en c2f y en f2c
 
 ## Paso 6 · Centralizar las validaciones duplicadas
 
+**Por qué:** El mismo `if ...: raise` se repetía en 6 funciones, así que cambiar una regla obligaba a editar varios lugares (smell 2).
+
 **Cambio:** en `conversor.py` se crearon `_validar_sobre_cero_absoluto(celsius)` y `_validar_no_negativo(valor, magnitud)`. Las 6 funciones de conversión las llaman en lugar de repetir el `if ...: raise`. `fahrenheit_a_celsius` sigue validando el resultado hasta el paso 10.
 
 ```
@@ -133,6 +180,8 @@ ruff format --check .                    → 10 files already formatted
 ```
 
 ## Paso 7 · Excepción propia con mensajes centralizados
+
+**Por qué:** Los mensajes de error eran literales repetidos (smell 13). La excepción hereda de `ValueError` para que `cli.py` y las pruebas sigan funcionando sin cambios.
 
 **Cambio:** en `conversor.py` se creó `ErrorConversion(ValueError)` con los mensajes `TEMPERATURA_BAJO_CERO_ABSOLUTO` y `MAGNITUD_NEGATIVA` como atributos de clase. Las validaciones lanzan `ErrorConversion`, y el mensaje del `KeyError` de `convertir` se asigna a una variable antes del `raise`. Los docstrings se actualizaron. `cli.py` no cambió.
 
@@ -146,6 +195,8 @@ python cli.py -300 c2f             → "Error: Temperatura por debajo del cero a
 ```
 
 ## Paso 8 · Registro de conversiones inmutable y con campos con nombre
+
+**Por qué:** `CONVERSIONES` era un `dict` mutable importado por otros módulos, y sus entradas eran tuplas posicionales que se desempaquetaban con `funcion, _` (smell 6).
 
 **Cambio:**
 - `conversor.py`: nueva clase `Conversion(NamedTuple)` con `funcion` y `descripcion`. `CONVERSIONES` está envuelto en `MappingProxyType` y `convertir` usa `CONVERSIONES[clave].funcion`.
@@ -161,6 +212,8 @@ ruff format --check .              → 10 files already formatted
 ```
 
 ## Paso 9 · Quitar el uso de `KeyError` y el parche de las comillas
+
+**Por qué:** Python pone comillas al mensaje de un `KeyError`, lo que obligaba al parche `strip(chr(39))` en `cli.py`, que además podía borrar un apóstrofo legítimo (smells 4 y 5).
 
 **Cambio:**
 - `conversor.py`: nueva clase `ClaveNoSoportada(ErrorConversion, KeyError)`, que arma su mensaje con la clave pedida y las disponibles y redefine `__str__` para que salga sin comillas. `convertir` lanza `ClaveNoSoportada(clave, disponibles)`. Se actualizaron los docstrings de `ErrorConversion` y `convertir`.
@@ -179,6 +232,8 @@ salida de la CLI antes vs. después → idéntica (cmp), con clave inválida, va
 Con este paso terminan los pasos que no cambian el comportamiento.
 
 ## Paso 10 · Corregir `f2c`
+
+**Por qué:** Era un error real: 212 °F daba 324 °C. Además validaba el resultado y no la entrada, así que rechazaba −200 °F y aceptaba −500 °F (smell 1).
 
 *Este paso cambia el comportamiento a propósito.*
 
@@ -205,6 +260,8 @@ En el primer intento ruff marcó un docstring de 90 caracteres (E501, el límite
 
 ## Paso 11 · Rechazar `nan` e `inf`
 
+**Por qué:** `type=float` acepta `nan` e `inf`, y la CLI imprimía `nan` como si fuera un resultado válido (smell 9).
+
 *Este paso cambia el comportamiento.*
 
 **Cambio:**
@@ -230,6 +287,8 @@ Durante la ejecución, el script de edición modificó `conversor.py` pero fall�
 
 ## Paso 12 · Validar los argumentos con argparse
 
+**Por qué:** La comprobación manual repetía lo que argparse ya hace e imprimía el uso en `stdout` en lugar de `stderr` (smell 8).
+
 *Este paso cambia el comportamiento y la interfaz.*
 
 **Cambio:**
@@ -254,6 +313,8 @@ ruff format --check .              → sin cambios pendientes
 Desde la terminal el código de salida sigue siendo 2. Lo que cambia es que `main` como función lanza `SystemExit(2)` en lugar de devolver 2, y que el uso sale en `stderr`. Los mensajes propios de argparse (`conversor: error:`, `invalid float value`) salen en inglés, algo que ya pasaba antes con los valores no numéricos.
 
 ## Paso 13 · Llevar el redondeo a la CLI
+
+**Por qué:** El redondeo es una decisión de presentación: quien usara `convertir` como biblioteca no podía obtener el valor completo (smell 7).
 
 *Este paso cambia el comportamiento de la biblioteca.*
 
@@ -287,3 +348,25 @@ Se ejecutaron los 14 pasos de `PLAN.md`.
 - **Ruff:** 0 errores con 12 grupos de reglas activos. Al principio había 47.
 - **Pruebas:** 43 en verde, frente a las 4 originales, que siguen pasando.
 - **Smells de `DIAGNOSTICO.md`:** quedan resueltos todos menos el 14, INP001 (falta `__init__.py` en `tests/`), que el plan dejó fuera porque esa regla no se activó.
+
+---
+
+## Ajustes para la entrega
+
+**Por qué:** el formato de entrega del reto pide una estructura concreta: el código en `src/`, un `README.md` y la bitácora y la reflexión en `docs/`.
+
+**Cambio:**
+- `conversor.py` y `cli.py` se movieron a `src/` con `git mv`, para conservar su historial.
+- `pyproject.toml`: nueva sección `[tool.pytest.ini_options]` con `pythonpath = ["src"]` y `testpaths = ["tests"]`. Reemplaza a `conftest.py`, que se eliminó porque solo servía para agregar la raíz a `sys.path`.
+- El docstring de `src/cli.py` y `CLAUDE.md` usan ahora `python src/cli.py`.
+- Nuevo `README.md` con requisitos, instalación, uso, pruebas y linter.
+- `pasosplan.md` se reemplazó por `docs/bitacora.md`, que agrega la justificación de cada paso y las fases del trabajo. El archivo original se eliminó con `git rm` y sigue en el historial.
+
+```
+pytest -q                          → 43 passed
+pytest tests/test_conversor.py -q  → 4 passed
+ruff check .                       → All checks passed!
+ruff format --check .              → sin cambios pendientes
+python src/cli.py 100 c2f          → 212.0
+python src/cli.py 5                → uso + error en stderr, código 2
+```
